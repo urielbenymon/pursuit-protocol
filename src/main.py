@@ -1,5 +1,13 @@
-# Complete your game here
-import pygame, random, math
+# Pursuit Protocol - a small pygame chase game
+# Final project for the University of Helsinki Python Programming MOOC 2025 (Advanced Course)
+import os, sys, random, math
+import pygame
+
+# Sprite images live in src/assets/, resolved relative to this file so the game runs from any directory
+ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+
+def asset_path(filename):
+    return os.path.join(ASSET_DIR, filename)
 
 # Global variables for the main window size
 max_window_width = 1280
@@ -38,23 +46,24 @@ class PursuitProtocol:
             self.x = x
             self.y = y
             self.outerclass = outerclass
-            if "robot" in filename:
+            sprite = os.path.basename(filename)
+            if "robot" in sprite:
                 self.robotImage = pygame.image.load(filename)
                 self.name = "robot"
                 self.robot_max_x_boundary = max_window_width - self.robotImage.get_width()
                 self.robot_max_y_boundary = max_window_height - self.robotImage.get_height()
-            if "monster" in filename:
+            if "monster" in sprite:
                 self.monsterImage = pygame.image.load(filename)
                 self.name = "monster"
                 self.monster_max_x_boundary = max_window_width - self.monsterImage.get_width()
                 self.monster_max_y_boundary = max_window_height - self.monsterImage.get_height()
                 self.outerclass = outerclass
-            if "coin" in filename:
+            if "coin" in sprite:
                 self.coinImage = pygame.image.load(filename)
                 self.name = "coin"
                 self.coin_max_x_boundary = max_window_width - self.coinImage.get_width()
                 self.coin_max_y_boundary = max_window_height - self.coinImage.get_height()
-            if "door" in filename:
+            if "door" in sprite:
                 self.doorImage = pygame.image.load(filename)
                 self.name = "door"
                 self.door_max_x_boundary = max_window_width - self.doorImage.get_width()
@@ -168,7 +177,7 @@ class PursuitProtocol:
         
         # Resets the door status for each level
         def resetDoor(self):
-            self.arrived == False
+            self.arrived = False
 
 # This method manages the game winning state. It checks if all the requirements are met for the winning condition. If so, it increases the challenge level and pauses all movement in the game for the robot and the monster(s)
     def gameWon(self):
@@ -244,15 +253,16 @@ class PursuitProtocol:
         self.monster_chase_speed = base_monster_speed_chase + (self.challenge_level - 1) * speed_scale
         self.detection_radius = base_detection_radius + (self.challenge_level - 1) * radius_scale
         self.num_coins = base_num_coins + (self.challenge_level - 1) * coin_scale
-        if self.challenge_level <= 3:
-            self.num_monsters = self.challenge_level
+        # One monster per level up to 3, three monsters for levels 4-6, and four from level 7 on
         if self.challenge_level >= 7:
             self.num_monsters = 4
+        else:
+            self.num_monsters = min(self.challenge_level, 3)
 
-        self.coinBlueprint = pygame.image.load("coin.png")
-        self.doorBlueprint = pygame.image.load("door.png")
-        self.robotBlueprint = pygame.image.load("robot.png")
-        self.monsterBlueprint = pygame.image.load("monster.png")
+        self.coinBlueprint = pygame.image.load(asset_path("coin.png"))
+        self.doorBlueprint = pygame.image.load(asset_path("door.png"))
+        self.robotBlueprint = pygame.image.load(asset_path("robot.png"))
+        self.monsterBlueprint = pygame.image.load(asset_path("monster.png"))
 
         self.won = False
         self.lost = False
@@ -270,17 +280,18 @@ class PursuitProtocol:
 
 
         # Used to spawn the random coins
-        self.coinList = [self.CoinClass(self, random.randint(0, max_window_width - self.coinBlueprint.get_width()), random.randint(0, max_window_height - self.coinBlueprint.get_height()), "coin.png") for i in range(self.num_coins)]
-        self.monsterList = [self.MonsterClass(self, 0, 0, self.monster_patrol_speed, self.monster_patrol_speed, self.monster_chase_speed, self.monster_chase_speed, "monster.png") for i in range(self.num_monsters)]
+        self.coinList = [self.CoinClass(self, random.randint(0, max_window_width - self.coinBlueprint.get_width()), random.randint(0, max_window_height - self.coinBlueprint.get_height()), asset_path("coin.png")) for i in range(self.num_coins)]
+        self.monsterList = [self.MonsterClass(self, 0, 0, self.monster_patrol_speed, self.monster_patrol_speed, self.monster_chase_speed, self.monster_chase_speed, asset_path("monster.png")) for i in range(self.num_monsters)]
         # Robot main character. Set to always spawn in the center of the screen
-        self.robot = self.RobotClass(self, (max_window_width // 2) - (self.robotBlueprint.get_width() // 2), (max_window_height // 2) - (self.robotBlueprint.get_height() / 2), 1.7, 1.7, "robot.png")
-        self.door = self.DoorClass(self, random.randint(0, max_window_width - self.doorBlueprint.get_width()), random.randint(0, max_window_height - self.doorBlueprint.get_height()), "door.png")
+        self.robot = self.RobotClass(self, (max_window_width // 2) - (self.robotBlueprint.get_width() // 2), (max_window_height // 2) - (self.robotBlueprint.get_height() / 2), 1.7, 1.7, asset_path("robot.png"))
+        self.door = self.DoorClass(self, random.randint(0, max_window_width - self.doorBlueprint.get_width()), random.randint(0, max_window_height - self.doorBlueprint.get_height()), asset_path("door.png"))
 
     #All the events are managed in this method. The movement for the robot character is turned off and on using its left/right/up/down instance variables. The tutorial is also set to show infinetly until the player presses "Enter"
     def events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit()
+                pygame.quit()
+                sys.exit()
             if self.playTutorial == True:
                 if event.type == pygame.KEYDOWN and (event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER):
                     self.playTutorial = False
@@ -327,7 +338,7 @@ class PursuitProtocol:
             coinBottomSide = self.coinList[i].y + self.coinList[i].coinImage.get_height()
             coinTopSide = self.coinList[i].y 
 
-            if robotLeftSide <= coinLeftSide and robotRightSide >= coinLeftSide and robotTopSide <= coinBottomSide and robotBottomSide >= coinTopSide:
+            if robotLeftSide < coinRightSide and robotRightSide > coinLeftSide and robotTopSide < coinBottomSide and robotBottomSide > coinTopSide:
                 self.points += 1
                 self.text_2 = self.game_font_2.render(f"Number of Coins: {self.points}", True, (0, 0, 0))
                 self.coinList[i].y = -10000
@@ -340,11 +351,11 @@ class PursuitProtocol:
 
             #The center points for the robot (target) and monster chasers are calculated here for adjusting the monsters' detection radius and tracking
 
-            robot_center_x = (self.robot.x + self.robot.robotImage.get_width()) // 2
-            robot_center_y = (self.robot.y + self.robot.robotImage.get_height()) // 2
+            robot_center_x = self.robot.x + self.robot.robotImage.get_width() / 2
+            robot_center_y = self.robot.y + self.robot.robotImage.get_height() / 2
 
-            monster_center_x = (self.monsterList[i].x + self.monsterList[i].monsterImage.get_width()) // 2
-            monster_center_y = (self.monsterList[i].y + self.monsterList[i].monsterImage.get_height()) // 2
+            monster_center_x = self.monsterList[i].x + self.monsterList[i].monsterImage.get_width() / 2
+            monster_center_y = self.monsterList[i].y + self.monsterList[i].monsterImage.get_height() / 2
 
             # This is a detection radius used to determine when to switch between patrol and chase modes for the monsters
             # These are the x and y distance gaps from the robot amd the monster. They serve as legs "a" and "b" in the pythagorean theorem
@@ -383,8 +394,13 @@ class PursuitProtocol:
                 if monster_center_y < robot_center_y:
                     self.monsterList[i].y += self.monsterList[i].chasevy
             
-            # Calls the losing condition if the robot's boundaries overlap with a monster's
-            if robotLeftSide - 10 <= monsterLeftSide and robotRightSide + 10 >= monsterRightSide and robotTopSide - 10 <= monsterBottomSide and robotBottomSide + 10 >= monsterTopSide:
+            # Calls the losing condition if the robot's boundaries overlap with a monster's.
+            # The monster's position is re-read here because it may have just moved this frame.
+            monsterLeftSide = self.monsterList[i].x
+            monsterRightSide = self.monsterList[i].x + self.monsterList[i].monsterImage.get_width()
+            monsterTopSide = self.monsterList[i].y
+            monsterBottomSide = self.monsterList[i].y + self.monsterList[i].monsterImage.get_height()
+            if robotLeftSide < monsterRightSide and robotRightSide > monsterLeftSide and robotTopSide < monsterBottomSide and robotBottomSide > monsterTopSide:
                 self.gameLost()
 
 
@@ -396,11 +412,11 @@ class PursuitProtocol:
 
         if self.points == len(self.coinList):
             self.door.doorUnlocked()
-        if robotLeftSide < doorLeftSide and robotRightSide > doorLeftSide and robotTopSide < doorBottomSide and robotBottomSide > doorTopSide and self.points == len(self.coinList):
+        if robotLeftSide < doorRightSide and robotRightSide > doorLeftSide and robotTopSide < doorBottomSide and robotBottomSide > doorTopSide and self.points == len(self.coinList):
             self.gameWon()
 
 
-    #The images for the running state of the game are drawn using this message. It shows the HUD for coin collection status, and provides an indicating message if the player wins/losses in addition to the current patrol/chase state of monsters
+    #The images for the running state of the game are drawn using this method. It shows the HUD for coin collection status, and provides an indicating message if the player wins/losses in addition to the current patrol/chase state of monsters
     def drawWindow(self):
         self.window.fill((0, 225, 70))
         for coin in self.coinList:
@@ -434,12 +450,13 @@ class PursuitProtocol:
         self.clock.tick(60)
 
 
-# The main game poop is here
+# The main game loop is here
     def main_game_loop(self):
         while True:
             self.events()
             if self.playTutorial == True:
                 self.drawTutorial()
+                self.clock.tick(60)
             else:
                 self.game_updates()
                 self.drawWindow()
@@ -450,7 +467,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-
-
-
