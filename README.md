@@ -2,6 +2,8 @@
 
 A top-down chase game written in Python with pygame. Guide a robot around the field, collect every coin, and reach the door before the monsters catch you. Monsters patrol across the screen until you get too close, then switch into pursuit mode and hunt you down.
 
+![Pursuit Protocol gameplay](docs/demo.gif)
+
 This was my final project for the [University of Helsinki Python Programming MOOC 2025](https://programming-25.mooc.fi/) (Advanced Course), which I completed for the advanced certificate.
 
 ## How to play
