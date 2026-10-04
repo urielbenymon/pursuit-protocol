@@ -1,233 +1,95 @@
-lang2vec
-=======
+# Pursuit Protocol
 
-A simple library for querying the [URIEL typological database](http://www.cs.cmu.edu/~dmortens/uriel.html),
-and the learned language vectors from [Malaviya et al, 2017](https://arxiv.org/pdf/1707.09569.pdf).
+A top-down chase game written in Python with pygame. Guide a robot around the field, collect every coin, and reach the door before the monsters catch you. Monsters patrol across the screen until you get too close, then switch into pursuit mode and hunt you down.
 
-Based on the [lang2vec tool](http://www.cs.cmu.edu/~dmortens/downloads/uriel_lang2vec_latest.tar.xz) by Patrick Littell.
+This was my final project for the [University of Helsinki Python Programming MOOC 2025](https://programming-25.mooc.fi/) (Advanced Course), which I completed for the advanced certificate.
 
-Installation
-------------
-Run ``pip3 install lang2vec``. 
-Or, if you are installing from source, clone the [git repo](https://github.com/antonisa/lang2vec) and do ``python3 setup.py install``.
-~~~~
-git clone https://github.com/antonisa/lang2vec
-cd lang2vec
-python3 setup.py install
-~~~~
+## How to play
 
+| | |
+|---|---|
+| **Goal** | Collect all coins to unlock the door, then reach the door |
+| **Move** | Arrow keys |
+| **Start / next round** | Enter |
 
-Usage
------
-The library currently supports two simple operations:
-1. querying the URIEL database, as well as the trained language vectors from [Malaviya et al, 2017](https://arxiv.org/pdf/1707.09569.pdf).
-The main operation is ``get_features(languages, feature_sets, header=False, minimal=False)``, which returns a dictionary with the feature vector for every language in ``languages`` for the ``feature_sets``.
-2. returning pre-computed distances between languages, based on some typological information. The main operation here is ``distance(distance, language1, language2)``, which returns a float distance
+The HUD shows your coin count, the current challenge level, and whether the "Pursuit Protocol" is active (a monster is chasing you).
 
+## Running it
 
-A minimal working example is:
-~~~~
->>> import lang2vec.lang2vec as l2v
->>> features = l2v.get_features("eng", "geo")
->>> features["eng"]
-[0.7664999961853027, 0.7924000024795532, 0.8277999758720398, 0.7214000225067139,...]
->>>
->>> l2v.distance("syntactic", "eng", "fra")
-0.4569
-~~~~
+**Requirements:** Python 3.13 and pygame 2.6.1, the setup verified on Windows. pygame is the only dependency, and all sprite images are included in `src/assets/`. Any way of getting Python 3.13 works (python.org, uv, conda, etc.); none of those tools is required.
 
-Querying URIEL
----------------
+```bash
+git clone https://github.com/urielbenymon/pursuit-protocol.git
+cd pursuit-protocol
+python -m venv .venv
+```
 
-The first argument of ``get_features()`` is either a list or a space-separated string of ISO 639-3 codes (e.g. ``["deu", "eng"]``).
-Any two letter codes ISO 639-1 codes will be mapped to their corresponding ISO-639-3 codes.
+Activate the virtual environment:
 
-~~~~
->>> features = l2v.get_features(["eng", "fra"], "geo")
->>> features["fra"]
-[0.7378000020980835, 0.7682999968528748, 0.7982000112533569, 0.6941999793052673, ...]
+| Shell | Command |
+|---|---|
+| Windows (PowerShell) | `.venv\Scripts\Activate.ps1` |
+| Windows (Git Bash) | `source .venv/Scripts/activate` |
+| macOS / Linux | `source .venv/bin/activate` |
 
->>> features = l2v.get_features("eng fr", "syntax_wals")
->>> features["eng"]
-[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, ...]
->>> features["fr"]
-[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, ...]
-~~~~
+Then install and run:
 
-Missing features are returned as ``'--'``. The library prints warning messages if a language is not available, e.g.
-~~~~
->>> features = l2v.get_features("eng", "learned")
-Note: Language eng not found in the 'learned' feature set. However, it is available in the URIEL feature sets.
->>> features["eng"][:5]
-['--', '--', '--', '--', '--']
-~~~~
+```bash
+pip install -r requirements.txt
+python src/main.py
+```
 
-You can list the supported languages with ``lang2vec.LANGUAGES`` or with ``lang2vec.available_languages()``.
-The URIEL languages can be listed with ``lang2vec.URIEL_LANGUAGES`` or with ``lang2vec.available_uriel_languages()``.
-The languages with learned vectors can be listed with ``lang2vec.LEARNED_LANGUAGES`` or with ``lang2vec.available_learned_languages()``.
+The game finds its images relative to `main.py`, so it can be launched from the repository root (as above) or from inside `src/` with `python main.py`.
 
-The second argument is a named feature set, provided as either a string, or a list of strings, or an elementwise union A|B of two feature sets, or a concatenation A+B of two feature sets.  So "geo+syntax_wals|syntax_sswl" gives the geographical feature vector concatenated with the elementwise union of the WALS and SSWL syntax feature sets.
+### Python 3.14
 
-Note that concatenations of unions are allowed, but unions of concatenations are not. Also, the union of two feature sets is restricted to sets with similar sizes. A good rule of thumb is that two sets have similar sizes if their names start with the same prefix (`"inventory", "phonology", "syntax"`). Again, missing features (see last example) will be returned as ``'--'``.
+pygame 2.6.1 (the latest `pygame` release) has no prebuilt package for Python 3.14, so on 3.14 `pip install pygame` tries to compile it from source, which fails on Windows. This is an installation problem, not a known incompatibility in the game's code. If `python` on your machine is 3.14, create the environment with 3.13 explicitly:
 
-We also provide helper functions ``fs_union()`` and ``fs_concatenation()``. They are "overloaded" so that they can receive an arbitrary number of feature set arguments or a list of feature sets. Some examples:
-~~~~
->>> l2v.fs_union("syntax_wals", "syntax_sswl")
-'syntax_wals|syntax_sswl'
+- Windows: `py -3.13 -m venv .venv` (with Python 3.13 installed from python.org)
+- macOS / Linux: `python3.13 -m venv .venv`
 
->>> l2v.fs_union(["syntax_wals", "syntax_sswl"])
-'syntax_wals|syntax_sswl'
+[pygame-ce](https://pypi.org/project/pygame-ce/), the actively maintained community fork, does ship Python 3.14 packages and installs as `import pygame`, but this game hasn't been tested with it.
 
->>> l2v.fs_concatenation( ["geo", l2v.fs_union(["syntax_wals", "syntax_sswl"])])
-'geo+syntax_wals|syntax_sswl'
+## How it works
 
->>> features = l2v.get_features("eng", l2v.fs_concatenation( ["geo", l2v.fs_union(["syntax_wals", "syntax_sswl"])]))
->>> features['eng'][:5]
-[0.7664999961853027, 0.7924000024795532, 0.8277999758720398, 0.7214000225067139, 0.8568999767303467]
+**Adaptive difficulty.** The game has 8 challenge levels. Winning a round moves you up a level and losing moves you down one, so the game settles around your skill. Each level scales the round's parameters:
 
->>> features = l2v.get_features("eng", "learned+syntax_wals")
-Note: Language eng not found in the 'learned' feature set. However, it is available in the URIEL feature sets.
->>> features["eng"][:5]
-['--', '--', '--', '--', '--']
->>> features["eng"][512:522]
-[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0]
-~~~~
+| Parameter | Level 1 | Per level | Level 8 |
+|---|---|---|---|
+| Coins | 2 | +2 | 16 |
+| Monsters | 1 | +1 (capped at 3 until level 7) | 4 |
+| Monster patrol speed (px/frame) | 0.45 | +0.09 | 1.08 |
+| Monster detection radius (px) | 70 | +2 | 84 |
 
-There are two optional arguments to ``get_features(languages, features_sets, header=False, minimal=False)``.
-Setting ``header=True`` will also return the feature names in a special dictionary entry ``'CODE'``. For example:
-~~~~
->>> features = l2v.get_features("eng", "syntax_wals", header=True)
->>> features['CODE'][:5]
-['S_SVO', 'S_SOV', 'S_VSO', 'S_VOS', 'S_OVS']
-~~~~
+**Patrol and chase states.** Each monster is a small two-state machine. In *patrol* mode it crosses the screen horizontally and respawns at a random height off the opposite edge. Every frame, the game measures the Euclidean distance between the robot's center and each monster's center. Inside the detection radius the monster switches to *chase* mode and steers toward the robot on both axes. It only gives up once you're 50 px beyond the radius. That gap (hysteresis) stops monsters from flickering between states at the boundary.
 
-Setting ``minimal=True`` will suppress the columns that contain only zeros, only ones, or only nulls.
+**Collisions.** Coin pickups, the door, and monster contact all use axis-aligned bounding-box overlap between the sprite rectangles.
 
-The "minimal" transformation applies after any union or concatenation.  (If it did not, sets in the same group, like the syntax_* sets, would not be the same dimensionality for comparison.) 
+## Project structure
 
-The available feature sets can be listed with ``lang2vec.FEATURE_SETS`` or with ``lang2vec.available_feature_sets()``.
-We list them here too:
+```
+src/
+├── main.py      # game loop, sprite classes, difficulty scaling, collision logic
+└── assets/      # robot, monster, coin and door sprites
+```
 
-* Sets from feature and inventory databases:
-    * "syntax_wals",
-    * "phonology_wals",
-    * "syntax_sswl",
-    * "syntax_ethnologue",
-    * "phonology_ethnologue",
-    * "inventory_ethnologue",
-    * "inventory_phoible_aa",
-    * "inventory_phoible_gm",
-    * "inventory_phoible_saphon",
-    * "inventory_phoible_spa",
-    * "inventory_phoible_ph",
-    * "inventory_phoible_ra",
-    * "inventory_phoible_upsid",
+## Changes since submission
 
-* Averages of sets:
-    * "syntax_average",
-    * "phonology_average",
-    * "inventory_average",
+The earlier commits in this repository contain the game as submitted for the course. This update cleans it up:
 
-* KNN predictions of feature values:
-    * "syntax_knn",
-    * "phonology_knn",
-    * "inventory_knn",
+- Monster and robot centers were computed as `(x + width) // 2` instead of `x + width / 2`, which effectively doubled the detection radius
+- Coin and door collision only registered when approaching from certain sides; all collisions now use a proper rectangle-overlap test
+- Monster-contact detection is now a standard overlap check
+- Levels 4–6 now set the monster count explicitly instead of inheriting it from the previous round
+- `resetDoor` used `==` instead of `=`, so it never reset anything
+- Sprites now load from a path relative to `main.py`, so the game runs from any directory
+- The tutorial screen is capped at 60 FPS instead of spinning the CPU
 
-* Membership in language families and subfamilies:
-    * "fam",
+## Credits
 
-* Distance from fixed points on Earth's surface
-    * "geo",
+- Game design and code: Uriel Benymon
+- Sprite images (`src/assets/`) come from the University of Helsinki [Python Programming MOOC 2025](https://programming-25.mooc.fi/) course material, © University of Helsinki / MOOC.fi, used under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
-* Learned vector used for typological predictions in Malaviya et al.
-    * "learned",
+## License
 
-* One-hot identity vector:
-    * "id",
-
-
-Retrieving pre-computed distances
-----
-
-Download the ``distances.npz`` file from [here](http://www.cs.cmu.edu/~aanastas/files/distances.zip) and put it in the ``lang2vec/data`` directory in your installation.
-
-These are the pre-computed distances for pairs between 8070 languages. The available distances can be listed with ``l2v.DISTANCES``, but they are limited to genetic, geographical, phonological, syntactic, featural, and inventory distance. In most cases, these correspond to the cosine distances between the corresponding feature vectors. For more information, see the paper.
-
-The ``distance(dist, langs)`` function receives a distance (or a list of distances) and language ISO codes (or a list of codes) as arguments. For a single distance and pair of languages, it returns a float number. If more than two languages are passed as arguments, it returns a numpy array with all the pairwise distances. If more than one distances are passed as arguments, it returns a list of the corresponding outputs.
-Examples:
-~~~~
->>> l2v.distance('syntactic', 'frr', 'dan')
-0.6629
->>> 
->>> l2v.distance('syntactic', ['frr', 'dan', 'deu'])
-array([[0.    , 0.6629, 0.5788],
-       [0.6629, 0.    , 0.4852],
-       [0.5788, 0.4852, 0.    ]])
->>> 
->>> l2v.distance(['syntactic','geographic'], 'frr', 'dan', 'deu')
-[array([[0.    , 0.6629, 0.5788],
-       [0.6629, 0.    , 0.4852],
-       [0.5788, 0.4852, 0.    ]]),
- array([[0.    , 0.0028, 0.0359],
-       [0.0028, 0.    , 0.0361],
-       [0.0359, 0.0361, 0.    ]])]
-~~~~
-
-We also provide helper functions for each type of distance, that only need language codes (or a list of codes) as arguments:
-~~~~
->>> l2v.syntactic_distance('frr','dan')
-0.66
->>> l2v.geographic_distance(['frr','dan'])
-0.0
->>> l2v.phonological_distance('frr','dan')
-0.0002
->>> l2v.genetic_distance('frr','dan')
-0.625
->>> l2v.inventory_distance('frr','dan')
-0.6196
->>> l2v.featural_distance('frr','dan')
-1.0
-~~~~
-
-For a description of each distance, refer to the URIEL and lang2vec paper.
-
-REFERENCES:
------------
-
-If you use lang2vec, please cite the following paper:
-
-    @inproceedings{littell2017uriel,
-      title={Uriel and lang2vec: Representing languages as typological, geographical, and phylogenetic vectors},
-      author={Littell, Patrick and Mortensen, David R and Lin, Ke and Kairis, Katherine and Turner, Carlisle and Levin, Lori},
-      booktitle={Proceedings of the 15th Conference of the European Chapter of the Association for Computational Linguistics: Volume 2, Short Papers},
-      volume={2},
-      pages={8--14},
-      year={2017}
-    }
-
-If you use the learned vectors, please cite the following paper:
-    
-    @inproceedings{malaviya17emnlp,
-        title = {Learning Language Representations for Typology Prediction},
-        author = {Malaviya, Chaitanya and Neubig, Graham and Littell, Patrick},
-        booktitle = {Conference on Empirical Methods in Natural Language Processing (EMNLP)},
-        address = {Copenhagen, Denmark},
-        month = {September},
-        year = {2017}
-    }
-
-
-The different feature sets above are derived from many sources:
-
-* _wals : Features derived from the World Atlas of Language Structures.
-* _sswl : Features derived from Syntactic Structures of the World's Languages.
-* _ethnologue : Features derived from (shallowly) parsing the prose typological descriptions in Ethnologue (Lewis et al. 2015).
-* _phoible_aa : AA = Alphabets of Africa. Features derived from PHOIBLE's normalization of *Systèmes alphabétiques des langues africaines* (Hartell 1993, Chanard 2006).
-* _phoible_gm : GM = Green and Moran.  Features derived from PHOIBLE's normalization of Christopher Green and Steven Moran's pan-African inventory database.
-* _phoible-ph : PH = PHOIBLE.  Features derived from PHOIBLE proper, by Moran, McCloy, and Wright (2012).
-* _phoible-ra : RA = Ramaswami.  Features derived from PHOIBLE's normalization of *Common Linguistic Features in Indian Languages: Phonetics* (Ramaswami 1999).
-* _phoible-saphon : SAPHON = South American Phonological Inventory Database.  Features derived from PHOIBLE's normalization of SAPHON (Lev et al. 2012).
-* _phoible-spa : SPA = Stanford Phonology Archive.  Features derived from PHOIBLE's normalization of SPA (Crothers et al., 1979).
-* _phoible-upsid : UPSID = UCLA Phonological Segment Inventory Database.  Features derived from PHOIBLE's normalization of UPSID (Maddieson 1984, Maddieson and Precoda 1990).
-* learned_ : 512-dimensional vectors learned by a neural network over data from 1017 languages, trained for typological prediction (Malaviya et al, 2017).
-
+The source code is released under the MIT License (see [LICENSE](LICENSE)). The sprite images are not covered by the MIT License; they remain under CC BY-NC-SA 4.0 as noted above.
